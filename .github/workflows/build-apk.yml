@@ -30,46 +30,31 @@ jobs:
           unzip -o NihongoMate_Android_Starter.zip -d .
           test -f NihongoMate/settings.gradle.kts
 
-      - name: Samakan target Java dan Kotlin
+      - name: Periksa konfigurasi Java
         run: |
-          find NihongoMate -type f \( -name 'build.gradle' -o -name 'build.gradle.kts' \) -exec sed -i \
-            -e 's/VERSION_1_8/VERSION_17/g' \
-            -e 's/VERSION_8/VERSION_17/g' \
-            -e 's/jvmTarget = "1.8"/jvmTarget = "17"/g' \
-            -e "s/jvmTarget = '1.8'/jvmTarget = '17'/g" \
-            -e 's/jvmTarget.set("1.8")/jvmTarget.set("17")/g' \
-            -e 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' {} +
-
-          echo "=== Konfigurasi Java setelah perbaikan ==="
-          grep -RniE 'VERSION_1_8|VERSION_8|jvmTarget|sourceCompatibility|targetCompatibility' NihongoMate --include='*.gradle' --include='*.gradle.kts' || true
-          echo "=== Pemeriksaan selesai ==="
-            
+          echo "=== Konfigurasi Java dan Kotlin ==="
+          grep -RniE 'VERSION_1_8|VERSION_8|jvmTarget|sourceCompatibility|targetCompatibility|jvmToolchain' NihongoMate --include='*.gradle' --include='*.gradle.kts' || true
 
       - name: Paksa target Java dan Kotlin ke 17
         run: |
-          cat > force-jvm.gradle <<'EOF'
+          cat > "$GITHUB_WORKSPACE/force-jvm.gradle" <<'EOF'
           allprojects {
-              afterEvaluate {
-                  tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
-                      sourceCompatibility = '17'
-                      targetCompatibility = '17'
-                  }
+              tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
+                  sourceCompatibility = '17'
+                  targetCompatibility = '17'
+              }
 
-                  tasks.configureEach { task ->
-                      if (task.name.toLowerCase().contains('kotlin') &&
-                          task.hasProperty('kotlinOptions')) {
-                          task.kotlinOptions.jvmTarget = '17'
-                      }
+              tasks.configureEach { task ->
+                  if (task.name.toLowerCase().contains('kotlin') &&
+                      task.hasProperty('kotlinOptions')) {
+                      task.kotlinOptions.jvmTarget = '17'
                   }
               }
           }
           EOF
 
-
       - name: Build APK
         run: gradle -I "$GITHUB_WORKSPACE/force-jvm.gradle" -p NihongoMate assembleDebug
-        
-        
 
       - name: Simpan APK
         uses: actions/upload-artifact@v4
