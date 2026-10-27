@@ -50,26 +50,35 @@ jobs:
           find NihongoMate -name 'gradle.properties' -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \;
           
 
-      - name: Paksa target Java dan Kotlin ke 17
-        run: |
-          cat > "$GITHUB_WORKSPACE/force-jvm.gradle" <<'EOF'
-          allprojects {
-              tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
-                  sourceCompatibility = '17'
-                  targetCompatibility = '17'
-              }
 
-              tasks.configureEach { task ->
-                  if (task.name.toLowerCase().contains('kotlin') &&
-                      task.hasProperty('kotlinOptions')) {
-                      task.kotlinOptions.jvmTarget = '17'
-                  }
-              }
-          }
-          EOF
+      - name: Atur target Java dan Kotlin ke 17
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("NihongoMate/app/build.gradle.kts")
+          s = p.read_text()
+
+          old = '    buildFeatures { compose = true }'
+          new = '''    compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+            buildFeatures { compose = true }'''
+
+          if old not in s:
+              raise SystemExit("Baris buildFeatures tidak ditemukan; file tidak diubah.")
+
+          p.write_text(s.replace(old, new, 1))
+          print(p.read_text())
+          PY
 
       - name: Build APK
-        run: gradle -I "$GITHUB_WORKSPACE/force-jvm.gradle" -p NihongoMate assembleDebug
+        run: gradle -p NihongoMate assembleDebug
+        
 
       - name: Simpan APK
         uses: actions/upload-artifact@v4
