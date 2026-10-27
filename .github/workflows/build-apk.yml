@@ -30,10 +30,25 @@ jobs:
           unzip -o NihongoMate_Android_Starter.zip -d .
           test -f NihongoMate/settings.gradle.kts
 
-      - name: Periksa konfigurasi Java
+
+      - name: Periksa konfigurasi proyek
         run: |
-          echo "=== Konfigurasi Java dan Kotlin ==="
-          grep -RniE 'VERSION_1_8|VERSION_8|jvmTarget|sourceCompatibility|targetCompatibility|jvmToolchain' NihongoMate --include='*.gradle' --include='*.gradle.kts' || true
+          echo "=== Struktur file Gradle ==="
+          find NihongoMate -type f \( -name '*.gradle' -o -name '*.gradle.kts' -o -name 'gradle.properties' \) -print
+
+          echo "=== Isi app/build.gradle.kts ==="
+          if [ -f NihongoMate/app/build.gradle.kts ]; then
+            cat NihongoMate/app/build.gradle.kts
+          fi
+
+          echo "=== Isi app/build.gradle ==="
+          if [ -f NihongoMate/app/build.gradle ]; then
+            cat NihongoMate/app/build.gradle
+          fi
+
+          echo "=== Konfigurasi properti Gradle ==="
+          find NihongoMate -name 'gradle.properties' -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \;
+          
 
       - name: Paksa target Java dan Kotlin ke 17
         run: |
