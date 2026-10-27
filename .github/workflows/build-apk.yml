@@ -30,15 +30,19 @@ jobs:
           unzip -o NihongoMate_Android_Starter.zip -d .
           test -f NihongoMate/settings.gradle.kts
 
-      
-      - name: Periksa konfigurasi Java dan Kotlin
+      - name: Samakan target Java dan Kotlin
         run: |
-          echo "=== File Gradle ==="
-          find NihongoMate -type f \( -name 'build.gradle' -o -name 'build.gradle.kts' -o -name 'settings.gradle' -o -name 'settings.gradle.kts' \) -print
+          find NihongoMate -type f \( -name 'build.gradle' -o -name 'build.gradle.kts' \) -exec sed -i \
+            -e 's/VERSION_1_8/VERSION_17/g' \
+            -e 's/VERSION_8/VERSION_17/g' \
+            -e 's/jvmTarget = "1.8"/jvmTarget = "17"/g' \
+            -e "s/jvmTarget = '1.8'/jvmTarget = '17'/g" \
+            -e 's/jvmTarget.set("1.8")/jvmTarget.set("17")/g' \
+            -e 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' {} +
 
-          echo "=== Konfigurasi JVM ==="
-          grep -RniE 'VERSION_1_8|VERSION_17|jvmTarget|sourceCompatibility|targetCompatibility|kotlinOptions|compilerOptions' NihongoMate --include='*.gradle' --include='*.gradle.kts' || true
-
+          echo "=== Konfigurasi Java setelah perbaikan ==="
+          grep -RniE 'VERSION_1_8|VERSION_8|jvmTarget|sourceCompatibility|targetCompatibility' NihongoMate --include='*.gradle' --include='*.gradle.kts' || true
+          echo "=== Pemeriksaan selesai ==="
             
       - name: Build APK
         run: gradle -p NihongoMate assembleDebug
