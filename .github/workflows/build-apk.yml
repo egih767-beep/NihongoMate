@@ -44,8 +44,30 @@ jobs:
           grep -RniE 'VERSION_1_8|VERSION_8|jvmTarget|sourceCompatibility|targetCompatibility' NihongoMate --include='*.gradle' --include='*.gradle.kts' || true
           echo "=== Pemeriksaan selesai ==="
             
+
+      - name: Paksa target Java dan Kotlin ke 17
+        run: |
+          cat > force-jvm.gradle <<'EOF'
+          allprojects {
+              afterEvaluate {
+                  tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
+                      sourceCompatibility = '17'
+                      targetCompatibility = '17'
+                  }
+
+                  tasks.configureEach { task ->
+                      if (task.name.toLowerCase().contains('kotlin') &&
+                          task.hasProperty('kotlinOptions')) {
+                          task.kotlinOptions.jvmTarget = '17'
+                      }
+                  }
+              }
+          }
+          EOF
+
       - name: Build APK
-        run: gradle -p NihongoMate assembleDebug
+        run: gradle -I force-jvm.gradle -p NihongoMate assembleDebug
+        
 
       - name: Simpan APK
         uses: actions/upload-artifact@v4
