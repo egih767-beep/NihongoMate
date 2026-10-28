@@ -25,10 +25,12 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Ekstrak proyek
+
+      - name: Ekstrak proyek v2
         run: |
-          unzip -o NihongoMate_Android_Starter.zip -d .
+          unzip -o NihongoMate_Starter_v2.zip -d .
           test -f NihongoMate/settings.gradle.kts
+          
 
 
       - name: Periksa konfigurasi proyek
