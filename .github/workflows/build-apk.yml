@@ -25,67 +25,59 @@ jobs:
         with:
           gradle-version: '8.9'
 
-
-      - name: Ekstrak proyek v2
+      - name: Ekstrak dan deteksi proyek
         run: |
           unzip -o NihongoMate_Starter_v2.zip -d .
-          test -f NihongoMate/settings.gradle.kts
-          
-
+          if [ -f NihongoMate/settings.gradle.kts ]; then
+            echo "PROJECT_DIR=NihongoMate" >> "$GITHUB_ENV"
+          elif [ -f NihongoMate_old/settings.gradle.kts ]; then
+            echo "PROJECT_DIR=NihongoMate_old" >> "$GITHUB_ENV"
+          else
+            echo "File settings.gradle.kts tidak ditemukan"
+            find . -name settings.gradle.kts -print
+            exit 1
+          fi
 
       - name: Periksa konfigurasi proyek
         run: |
-          echo "=== Struktur file Gradle ==="
-          find NihongoMate -type f \( -name '*.gradle' -o -name '*.gradle.kts' -o -name 'gradle.properties' \) -print
-
-          echo "=== Isi app/build.gradle.kts ==="
-          if [ -f NihongoMate/app/build.gradle.kts ]; then
-            cat NihongoMate/app/build.gradle.kts
-          fi
-
-          echo "=== Isi app/build.gradle ==="
-          if [ -f NihongoMate/app/build.gradle ]; then
-            cat NihongoMate/app/build.gradle
-          fi
-
-          echo "=== Konfigurasi properti Gradle ==="
-          find NihongoMate -name 'gradle.properties' -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \;
-          
-
+          echo "Proyek: $PROJECT_DIR"
+          find "$PROJECT_DIR" -type f \( -name '*.gradle' -o -name '*.gradle.kts' -o -name 'gradle.properties' \) -print
+          cat "$PROJECT_DIR/app/build.gradle.kts"
 
       - name: Atur target Java dan Kotlin ke 17
         run: |
           python3 - <<'PY'
+          import os
           from pathlib import Path
 
-          p = Path("NihongoMate/app/build.gradle.kts")
+          project = Path(os.environ["PROJECT_DIR"])
+          p = project / "app/build.gradle.kts"
           s = p.read_text()
 
-          old = '    buildFeatures { compose = true }'
-          new = '''    compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
-            }
-            kotlinOptions {
-                jvmTarget = "17"
-            }
-            buildFeatures { compose = true }'''
-
-          if old not in s:
-              raise SystemExit("Baris buildFeatures tidak ditemukan; file tidak diubah.")
-
-          p.write_text(s.replace(old, new, 1))
-          print(p.read_text())
+          if 'jvmTarget = "17"' not in s:
+              old = '    buildFeatures { compose = true }'
+              if old not in s:
+                  raise SystemExit("Pola buildFeatures tidak ditemukan; perlu cek file Gradle.")
+              new = '''    compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+              buildFeatures { compose = true }'''
+              s = s.replace(old, new, 1)
+              p.write_text(s)
           PY
 
       - name: Build APK
-        run: gradle -p NihongoMate assembleDebug
-        
+        run: gradle -p "$PROJECT_DIR" assembleDebug
 
       - name: Simpan APK
         uses: actions/upload-artifact@v4
         with:
           name: NihongoMate-debug-APK
-          path: NihongoMate/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          
           
