@@ -27,7 +27,7 @@ jobs:
 
       - name: Ekstrak dan deteksi proyek
         run: |
-          unzip -o NihongoMate_v8_Source.zip -d .
+          unzip -o NihongoMate_v9_Source.zip -d .
           if [ -f NihongoMate/settings.gradle.kts ]; then
             echo "PROJECT_DIR=NihongoMate" >> "$GITHUB_ENV"
           elif [ -f NihongoMate_old/settings.gradle.kts ]; then
